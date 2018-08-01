@@ -58,6 +58,7 @@ int arch_manager(int argc, char* argv[]) {
 				if(mkdir != 256) {
 					std::system(("mkdir -p ~/Projects/" + arguments.at(2) + "/inc/").c_str());
 					std::system(("mkdir -p ~/Projects/" + arguments.at(2) + "/src/").c_str());
+					std::system(("mkdir -p ~/Projects/" + arguments.at(2) + "/bin/").c_str());
 					const char *homedir;
 					if((homedir = getenv("HOME")) == NULL) {
 	   	 				homedir = getpwuid(getuid())->pw_dir;
@@ -68,7 +69,7 @@ int arch_manager(int argc, char* argv[]) {
 
 					if(build_sheet.is_open()) {
 					 	build_sheet << "#! /bin/bash" << std::endl;
-						build_sheet << "archc ./src/" + arguments.at(2) + ".arch ./" + arguments.at(2) << std::endl;
+						build_sheet << "archc ./src/" + arguments.at(2) + ".arch ./bin/" + arguments.at(2) << std::endl;
 						build_sheet.close();
 					} else {
 						std::cout << "Fatal Error: Couldn't create build file!" << std::endl;
@@ -76,7 +77,7 @@ int arch_manager(int argc, char* argv[]) {
 
 					if(run_sheet.is_open()) {
 						run_sheet << "#! /bin/bash" << std::endl;
-						run_sheet << "./" +  arguments.at(2) << std::endl;
+						run_sheet << "./bin/" +  arguments.at(2) << std::endl;
 						run_sheet.close();
 					} else {
 						std::cout << "Fatal Error: Couldn't create run file!" << std::endl;
