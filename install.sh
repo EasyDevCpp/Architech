@@ -15,7 +15,7 @@ mkdir -p ./bin/
 g++ -std=c++14 ./src/compiler/compiler.cpp -o ./bin/archc -no-pie
 g++ -std=c++14 ./src/manager/manager.cpp -o ./bin/architech_manager -no-pie
 
-echo "If you running an update than please choose 'yes' on the following prompts!" 
+echo "If you are running an update than please type 'y' on the following prompts!" 
 
 mkdir -p /usr/include/architech/
 cp -i ./inc/basics.arch /usr/include/architech/basics.arch
