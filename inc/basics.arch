@@ -1,0 +1,131 @@
+#cs
+	This headline is used for ideas, questions and everything that bothers
+	me... Fell free to respond to my thoughts (@EasyDevCpp; easy-dev[at]web.de)
+
+v0.0.1 thoughts:
+
+	TODO: 	- Add advanced string functions
+			Like: str_between, str_left, str_right, str_to_int, ... etc.
+		- Add array class & dym_array class
+		- Add fstream implementation
+		- Some math things
+		- Maybe: SmartPointers but atm I am thinking about including them into 
+		         the language as:
+			 sptr and sref & uptr<delete> and uref<delete>...
+		- Some system core functions
+		- ...
+	
+	Later on might considering excluding certain things to reduce
+	compilation time and the unused ressources... On the other hand
+	one import for nearly everything important is sneaky...
+
+	What do you think about modules? Like splitting an import file into
+	seperate parts and than later on choose which modules you want to
+	include but the file itself stays as it is... A bit like namespaces 
+	but one step further...
+
+	Syntax would look like:
+	module io
+		... the included stuff
+	end
+
+	//import "file" use io ...
+
+	This would be processed right after loading so no unused parts are
+	included! 
+
+	One core problem would be that the c++ includes would be either included
+	in the modules which would cause double inclusions which are not necessarly
+	bad but not nice to look at and work with, or they would be included outside
+	which would be even worse because than modules would only make limited sense!
+
+	Let's see what the future might bring... Atm this language is just a fun
+	project I am doing for myself inspired strongly by Vala and Jai... I just feel
+	more and more uncomfortable with C++ and want to move on besides don't miss out
+	any of my beloved features... That's why I tried to combine both things and in
+	my opinion it turned out as an good start... I mean atm the language can't be
+	used for anything but the first layer is already set.
+
+	I am optimistic.
+
+	-- Short idea: about print, println, read & readln
+		What if I replace the c++ calls with echo and read and parse
+		the input myself? So I can reduce the c++ in ArchiTech...
+
+		like: system_call("read input")
+		      var $input = system_call("echo $input") # Would it be possible to prevent echo from printing?
+		      ret $input
+		
+		Is this really a better alternative? I mean less c++ means more
+		original stuff, but for simple output? Worth or not worth it?
+
+	-- Problem: As you can see from the functions below it is atm impossible
+		to print an integer. This is because there is no integer overload and
+		I am too lazy to programm an overload for every type so implementing 
+		templates seems legit to me... Only problem I have with that is, that
+		it will increase the complexity of the language and how it is used.
+#ce
+
+__cpp
+	#include <iostream>
+cpp__
+
+#cs
+	Name: 			print
+	Paramaters:		$text - type variant
+	Description:		Prints a given text to the screen.
+	Author(s):		Robin Krause
+	Dependency:		std::cout (<iostream>)
+#ce
+func print($text)
+	__cpp
+		std::cout << $text; 
+	cpp__
+end
+
+#cs
+	Name: 			println
+	Paramaters:		$text - type variant
+	Description:		Prints a given text to the screen and adds a newline.
+	Author(s):		Robin Krause
+	Dependency:		std::cout (<iostream>)
+				std::endl (<iostream>)
+#ce
+func println($text)
+	__cpp
+		std::cout << $text << std::endl;
+	cpp__
+end
+
+#cs
+	Name: 			read
+	Paramaters:		none
+	Description:		Reads text input and waits until enter is pressed.
+	Author(s):		Robin Krause
+	Dependency:		std::cin (<iostream>)
+#ce
+func read &_
+as var()
+	var $input = ""
+	__cpp
+		std::cin >> $input;
+	cpp__
+	ret $input
+end
+
+#cs
+	Name:			readln
+	Parameters:		none
+	Description:		Reads an entire line of text input and waits until enter is pressed.
+	Author(s):		Robin Krause
+	Dependancy:		std::cin (<iostream>)
+				std::getline (<iostream>)
+#ce
+func readln &_
+as var()
+	var $input_line = ""
+	__cpp
+		std::getline(std::cin, $input_line);
+	cpp__
+	ret $input_line
+end

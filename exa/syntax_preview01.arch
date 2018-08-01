@@ -1,0 +1,11 @@
+import ./inc/basics.arch
+
+func main()
+	var $name
+	println("Hello!\nWhat's your name?")
+	print("My Name: ")
+	$name = readln()
+	println("Hello, " + $name + "!")
+	ret
+end
+
