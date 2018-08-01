@@ -1,8 +1,13 @@
 #! /bin/bash
 
 if [ "$(whoami)" != "root" ]; then
-	echo "You have to be root for installation! Please use sudo!"
+	echo "Fatal error: You have to be root for installation! Please use sudo!"
 	exit 1
+fi
+
+if [ ! -f /usr/bin/g++ ]; then
+    echo "Fatal error: unmet dependency! g++ can't be found!"
+    exit 1
 fi
 
 mkdir -p ./bin/
@@ -21,6 +26,15 @@ chmod +x /usr/bin/archc
 cp -i ./bin/architech_manager /usr/bin/architech_manager
 chmod +x /usr/bin/architech_manager
 
-echo "Installation successfully fineshed!"
+if [ -f /usr/include/architech/basics.arch ]; then
+    if [ -f /usr/bin/archc ]; then
+        if [ -f /usr/bin/architech_manager ]; then
+            echo "Installation successfully fineshed!"
+            exit 0
+        fi
+    fi
+fi
+
+echo "Installation failed! Please try the process again or contact me on GitHub/Twitter/E-Mail!"
 
 
