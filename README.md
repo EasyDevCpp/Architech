@@ -93,7 +93,7 @@ Future features:
 
    ```
    The created file will be located at:
-   ~/Projects/[Project Name]/[Project Name].arch
+   ~/Projects/[Project Name]/src/[Project Name].arch
    
    The include files will be located at:
    ~/Projects/[Project Name]/inc/
@@ -148,7 +148,7 @@ Future features:
 7. Open up a terminal and enter the following command:
 
    ```bash
-   >> architech_manager compile
+   >> architech_manager build
    ```
 
 8. Run our program!
