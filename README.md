@@ -1,4 +1,17 @@
-# Architech [![Build Status](https://travis-ci.org/EasyDevCpp/Architech.svg?branch=master)](https://travis-ci.org/EasyDevCpp/Architech)
+<h1 align="center">
+	<br/>
+	<img src="https://raw.githubusercontent.com/EasyDevCpp/Architech/master/img/Architech_v2_alpha.png" alt="Architech" width="80%"/>
+	<br/>
+	Architech
+	<br/>
+</h1>
+
+<h4 align="center">
+	Simple but yet effective programming language with C & C++ support.
+	<a href="https://travis-ci.org/EasyDevCpp/Architech">
+		<img src="https://travis-ci.org/EasyDevCpp/Architech.svg?branch=master" alt="Architech build"/>
+	</a>
+</h4>
 
 > Simple but yet effective programming language with C & C++ support.
 >
