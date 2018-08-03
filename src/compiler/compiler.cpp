@@ -1,17 +1,19 @@
 /*
- *	Author: Robin Krause
- *	
- *	E-Mail: easy-dev[at]web.de
+ *	Architech - Yet simple but yet effective programming language
+ *   	Copyright (C) 2018 - Robin Krause
  *
- *	License: GNU Public License v3
+ *   	This program is free software: you can redistribute it and/or modify
+ *   	it under the terms of the GNU General Public License as published by
+ *   	the Free Software Foundation, either version 3 of the License, or
+ *   	(at your option) any later version.
  *
- *	Project:
- *		Architech - Simple yet effictive programming language
+ *   	This program is distributed in the hope that it will be useful,
+ *   	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  	GNU General Public License for more details.
  *
- *	Dependancies:
- *		g++ or any other c++ compiler
- *
- *	Usage: archc input-file output-file [compiler] [c/c++ libaries]
+ *   	You should have received a copy of the GNU General Public License
+ *   	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <iostream>
@@ -59,7 +61,6 @@ std::vector<std::string> read_input_file(std::string file_path) {
 			std::getline(input_file, line);
 			source_file.push_back(line);
 			temp_file.content.push_back(line);
-			line = ""; //Not sure if this is necessary???
 		}
 		temp_file.content = _parse(put_broken_lines_together(empty_comment_lines(remove_tabs(temp_file.content), file_path), true));
 		error::files.push_back(temp_file);
@@ -83,26 +84,98 @@ std::vector<std::string> read_input_file(std::string file_path) {
 }
 
 int compile(int argc, char *argv[]) {
-	if(argc >= 3 && argc < 6) {
-		std::vector<std::string> arguments;
-		std::vector<std::string> source_file;
-		std::vector<std::string> parsed_file;
+	std::vector <std::string> arguments;
+	std::vector<std::string> source_file;
+	std::vector<std::string> parsed_file;
+	std::string out_file = "";
+	std::string parameters = "";
+	bool options = false;
+	bool help = false;
 
+	if(argc > 1) {
 		arguments = get_arguments(argc, argv);
-		source_file = read_input_file(arguments.at(1));
-		if(error::code != -1) parsed_file = parse_source(source_file);
-		if(error::code != -1 && !check_source(parsed_file)) {
-			convert_source(parsed_file, arguments.at(2));
-			int t = system(("g++ -std=c++14 " + arguments.at(2) + ".cpp -o " + arguments.at(2) + " -no-pie").c_str());
-			std::remove((arguments.at(2) + ".cpp").c_str());
-		} else {
-			error::code = -1;
+		if(arguments.at(1) == "help") {
+			std::cout << "Architech Compiler Help[ver..: 0.0.2]:" << std::endl;
+			std::cout << "\tSyntax: archc [options] input_file [action] [output_file] [libaries]\n" << std::endl;
+			std::cout << "\toptions:" << std::endl;
+			std::cout << "\t\tno-warnings :\t\tdisable warnings" << std::endl;
+			std::cout << std::endl;
+			std::cout << "\tactions:" << std::endl;
+			std::cout << "\t\thelp        :\t\tshow help" << std::endl;
+			std::cout << "\t\tcheck       :\t\tonly syntax check" << std::endl;
+			std::cout << "\t\tbuild       :\t\tbuild an executable" << std::endl;
+			std::cout << "\t\tconvert     :\t\tconvert to c++" << std::endl;
+			help = true;
+		} else if(arguments.at(1) == "no-warnings") {
+			if(argc > 3) {
+				syntax::show_warnings = false;
+				options = true;
+			} else {
+				std::cout << "[ERROR] Too less paramters used! Use 'archc help' to view help!" << std::endl;
+				return -1;
+			}
 		}
-		return error::code;
+		if(argc > 2 && !help) {
+			if(arguments.at(2) == "check" || (argc > 3 && arguments.at(3) == "check")) {
+				if(options) {
+					if(argc > 3) {
+						source_file = read_input_file(arguments.at(2));
+					} else {
+						std::cout << "[ERROR] Too less paramters used! Use 'archc help' to view help!" << std::endl;
+						return -1;
+					}
+				} else {
+					source_file = read_input_file(arguments.at(1));
+				}
+				if(error::code != -1) parsed_file = parse_source(source_file);
+				if(error::code != -1) check_source(parsed_file);
+				return 0;
+			}
+		}
+		if(argc > 3 && !help) {
+			if(options) {
+				if(argc > 4) {
+					source_file = read_input_file(arguments.at(2));
+					out_file = arguments.at(4);
+					if(argc > 5) {
+						for(int i = 5; i < arguments.size(); i++) {
+							parameters += arguments.at(i) + " ";
+						}
+					}
+				} else {
+					std::cout << "[ERROR] Too less paramters used! Use 'archc help' to view help!" << std::endl;
+					return -1;
+				}
+			} else {
+				source_file = read_input_file(arguments.at(1));
+				out_file = arguments.at(3);
+				if(argc > 4) {
+					for(int i = 4; i < arguments.size(); i++) {
+						parameters += arguments.at(i) + " ";
+					}
+				}
+			}
+			if(arguments.at(2) == "build" || arguments.at(3) == "build") {	
+				if(error::code != -1) parsed_file = parse_source(source_file);
+				if(error::code != -1 && !check_source(parsed_file)) {
+					convert_source(parsed_file, out_file);
+					std::system(("g++ -std=c++14 " + out_file + ".cpp -o " + out_file + " " + parameters + "-no-pie").c_str());
+					std::remove((out_file + ".cpp").c_str());
+				}
+				return error::code = -1;
+			} else if(arguments.at(2) == "convert" || arguments.at(3) == "convert") {
+				if(error::code != -1) parsed_file = parse_source(source_file);
+				if(error::code != -1 && !check_source(parsed_file)) {
+					convert_source(parsed_file, out_file);
+				}
+				return error::code = -1;
+			}
+		}
 	} else {
-		std::cout << "[ERROR] Too few or too many parameters used!" << std::endl;
+		std::cout << "[ERROR] Missing parameters! Use 'archc help' to view help!" << std::endl;
 		return -1;
 	}
+	return 0;	
 }
 
 int main(int argc, char *argv[]) {
