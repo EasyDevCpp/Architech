@@ -44,7 +44,8 @@ int arch_manager(int argc, char* argv[]) {
 			std::cout << "\t\t\tbuild\t\t  :\tBuilds the current project" << std::endl;
 			std::cout << "\t\t\trun\t\t  :\tRun the current project" << std::endl;
 			std::cout << "\t\t\tcheck\t\t  :\tCheck the current project" << std::endl;
-            std::cout << "\t\t\tconvert\t\t  :\tConvert the current project to C++-code" << std::endl;
+			std::cout << "\t\t\tconvert\t\t  :\tConvert the current project to C++-code" << std::endl;
+			std::cout << "\t\t\tset key = values  :\tSets a value for a given key in the build environment" << std::endl;
 			std::cout << "\t\t\thelp\t\t  :\tshow help" << std::endl;
 		} else if(arguments.at(1) == "new") {
 			if(argc == 3) {
@@ -77,7 +78,7 @@ int arch_manager(int argc, char* argv[]) {
 						build_sheet << "\telif [ $1 == \"check\" ]\n\tthen" << std::endl;
 						build_sheet << "\t\t\tarchc $OPTIONS ./src/" + arguments.at(2) + ".arch check" << std::endl;
 						build_sheet << "\telif [ $1 == \"convert\" ]\n\tthen" << std::endl;
-						build_sheet << "\t\t\tarchc $OPTIONS ./src/" + arguments.at(2) + ".arch convert ./" + arguments.at(2) + ".cpp" << std::endl;
+						build_sheet << "\t\t\tarchc $OPTIONS ./src/" + arguments.at(2) + ".arch convert ./" + arguments.at(2) << std::endl;
 						build_sheet << "fi" << std::endl;
 						build_sheet.close();
 					} else {
@@ -102,7 +103,6 @@ int arch_manager(int argc, char* argv[]) {
 						source_file << std::endl;
 					} else {
 						std::cout << "Fatal Error: Couldn't create source file!" << std::endl;
-
 					}
 
 					std::system(("cp /usr/include/architech/basics.arch " + std::string(homedir) + "/Projects/" + arguments.at(2) + "/inc/basics.arch").c_str());
@@ -121,6 +121,44 @@ int arch_manager(int argc, char* argv[]) {
 			std::system("bash build.sh convert");
 		} else if(arguments.at(1) == "run") {
 			std::system("sh run.sh");
+		} else if(argc > 4 && arguments.at(1) == "set") {
+			std::vector<std::string> old_build_sheet;
+			std::string temp = "";
+			std::string values = "";
+			int key_id = 0;
+			std::ifstream build_sheet;
+			std::ofstream new_build_sheet;
+			build_sheet.open("./build.sh", std::ios_base::in);
+			if(build_sheet.is_open()) {
+				while(!build_sheet.eof()) {
+					std::getline(build_sheet, temp);
+					old_build_sheet.push_back(temp);
+				}
+				build_sheet.close();
+			} else {
+				std::cout << "build.sh missing!" << std::endl;
+				return -1;
+			}
+			if(arguments.at(3) != "=") {
+				std::cout << "Wrong use of set!" << std::endl;
+				return -1;
+			}
+			for(int i = 4; i < arguments.size(); i++) {
+				values += arguments.at(i);
+				if(i + 1 != arguments.size()) values += " ";
+			}
+			if(arguments.at(2) == "OPTIONS") key_id = 1;
+			else if(arguments.at(2) == "PARAMETERS") key_id = 2;
+			old_build_sheet.at(key_id) = arguments.at(2) + "=\"" + values + "\"";
+			new_build_sheet.open("./build.sh", std::ios_base::in);
+			if(new_build_sheet.is_open()) {
+				for(auto t: old_build_sheet) {
+					new_build_sheet << t << std::endl;
+				}
+				new_build_sheet.close();
+			} else {
+				std::cout << "Fatal Error: Can't update build.sh!" << std::endl;
+			}
 		} else {
 			std::cout << "Unknown parameter! Use 'architech_manager help'!" << std::endl;
 		}

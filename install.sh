@@ -29,7 +29,7 @@ chmod +x /usr/bin/architech_manager
 if [ -f /usr/include/architech/basics.arch ]; then
     if [ -f /usr/bin/archc ]; then
         if [ -f /usr/bin/architech_manager ]; then
-            echo "Installation successfully fineshed!"
+            echo "Installation successfully finished!"
             exit 0
         fi
     fi
