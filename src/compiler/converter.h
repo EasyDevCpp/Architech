@@ -1,18 +1,25 @@
 /*
- *	Author: Robin Krause
- *	
- *	E-Mail: easy-dev[at]web.de
+ *	Architech - Yet simple but yet effective programming language
+ *   	Copyright (C) 2018 - Robin Krause
  *
- *	License: GNU Public License v3
+ *   	This program is free software: you can redistribute it and/or modify
+ *   	it under the terms of the GNU General Public License as published by
+ *   	the Free Software Foundation, either version 3 of the License, or
+ *   	(at your option) any later version.
  *
- *	Project:
- *		Architech - Simple yet effictive programming language
+ *   	This program is distributed in the hope that it will be useful,
+ *   	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  	GNU General Public License for more details.
  *
- *	Dependancies:
- *		g++ or any other c++ compiler
- *
- *	Usage: archc input-file output-file [compiler] [c/c++ libaries]
+ *   	You should have received a copy of the GNU General Public License
+ *   	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+namespace converter {
+	std::string last_func_type = "";
+	bool last_func_pointer = false;
+}
 
 namespace default_values {
 	std::string basic_type = "\"\"";
@@ -23,7 +30,7 @@ namespace default_values {
 	std::string float_type = "0.0";
 	std::string double_type = "0.0";
 	std::string bool_type = "false";
-	std::string unknown = "NULL";
+	std::string unknown = "none";
 	std::string unknown_ptr = "nullptr";
 
 	std::array<std::string, 10> defaults = {basic_type,
@@ -185,13 +192,7 @@ std::vector<std::string> _convert(std::vector<std::string> parsed_file) {
 	converted_file.push_back("#include <string>");
 
 	for(std::string line: parsed_file) {
-		segments = split_line(line);
-		
-		/* For debugging reasons TODO: delete those reasons
-		for(auto t: segments) {
-			std::cout << t << std::endl;
-		}
-		*/
+		segments = split_line(line);	
 
 		if(segments.size() > 0) {
 			if(segments.at(0) == "cpp") {
@@ -205,11 +206,15 @@ std::vector<std::string> _convert(std::vector<std::string> parsed_file) {
 				if(segments.at(2) == "as") {
 					if(segments.at(3) == "var") type = "std::string";
 					else type = segments.at(3);
-					if(segments.at(4) == "ptr") type += "*";
+					if(segments.at(4) == "ptr") {
+						converter::last_func_pointer = true;
+						type += "*";
+					}
 				}
 				params_pos = find_segment(segments, "(");
 				params = get_creation_parameters(segments, params_pos + 1);
 				if(name == "main") type = "int";
+				converter::last_func_type = type;
 				converted_file.push_back(type + " " + name + "(" + params + ") {");
 			} else if(segments.at(0) == "var") {
 				std::string name = segments.at(1).substr(1, segments.at(1).length());
@@ -241,7 +246,11 @@ std::vector<std::string> _convert(std::vector<std::string> parsed_file) {
 					value = get_default_value_by_type(type, pointer);
 				}	
 				if(params_pos == 0) {
-					converted_file.push_back(type + " " + name + " = " + value + ";");
+					if(value == "none") {	
+						converted_file.push_back(type + " " + name + ";");
+					} else {
+						converted_file.push_back(type + " " + name + " = " + value + ";");
+					}
 				} else {
 					if(pointer) {
 						converted_file.push_back(type + " " + name + " = new " + type.substr(0, type.length() - 1) + "(" + params + ");");
@@ -253,22 +262,40 @@ std::vector<std::string> _convert(std::vector<std::string> parsed_file) {
 				std::string name = "";
 				std::string value = "";
 				if(segments.size() > 2) {
-					name = segments.at(0).substr(1, segments.at(0).length());
 					if(segments.at(1) == "=") {
+						name = segments.at(0).substr(1, segments.at(0).length());
 						value = get_used_value(segments, 2, segments.size() - 1);
-						converted_file.push_back(name + " = " + value + ";");
+					} else {
+						int alloc_pos = find_segment(segments, "=");
+						if(alloc_pos != -1) {
+							name = get_used_value(segments, 0, alloc_pos - 1);
+							value = get_used_value(segments, alloc_pos + 1, segments.size() - 1);
+						}
 					}
+					converted_file.push_back(name + " = " + value + ";");
 				}
 			} else if(segments.at(0) == "ret") {
-				/* TODO: What about eg: ret ($t * 3)/2 ? */
-				if(segments.size() == 3 && segments.at(2) == "ref") {
-					string_replace_all(segments.at(1), "$", "");
-				       	converted_file.push_back("return &" + segments.at(1) + ";");
-				} else if(segments.size() == 2) {
-					string_replace_all(segments.at(1), "$", "");
-					converted_file.push_back("return " + segments.at(1) + ";");
+				if(segments.size() > 1) {
+					converted_file.push_back("return " + get_used_value(segments, 1, segments.size() - 1) + ";");
 				} else {
-					converted_file.push_back("return 0;");
+					std::string value = get_default_value_by_type(converter::last_func_type, converter::last_func_pointer);
+					if(value != "none") {
+						converted_file.push_back("return " + value + ";");
+					}
+				}
+			} else if(segments.at(0) == "while") {
+				if(segments.size() == 1) {
+					converted_file.push_back("while(true) {");
+				} else if(segments.size() > 2) {
+					if(segments.size() == 3) {
+						converted_file.push_back("while(true) {");
+					} else if(segments.size() > 3) {
+						converted_file.push_back("while(" + get_used_value(segments, 2, segments.size() - 2) + ") {");
+					}
+				}
+			} else if(segments.at(0) == "if") {
+				if(segments.size() > 5) {
+					converted_file.push_back("if(" + get_used_value(segments, 2, segments.size() - 2) + ") {");
 				}
 			} else if(segments.at(0) == "end") {
 				converted_file.push_back("}");
