@@ -1,32 +1,20 @@
 /*
- *	Author: Robin Krause
- *	
- *	E-Mail: easy-dev[at]web.de
+ *	Architech - Yet simple but yet effective programming language
+ *   	Copyright (C) 2018 - Robin Krause
  *
- *	License: GNU Public License v3
+ *   	This program is free software: you can redistribute it and/or modify
+ *   	it under the terms of the GNU General Public License as published by
+ *   	the Free Software Foundation, either version 3 of the License, or
+ *   	(at your option) any later version.
  *
- *	Project:
- *		Architech - Simple yet effictive programming language
+ *   	This program is distributed in the hope that it will be useful,
+ *   	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  	GNU General Public License for more details.
  *
- *	Dependancies:
- *		g++ or any other c++ compiler
- *
- *	Usage: archc input-file output-file [compiler] [c/c++ libaries]
+ *   	You should have received a copy of the GNU General Public License
+ *   	along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-/* BIG TODO!!! */
-
-/* FACING PROBLEMS!!! Values can't be compared to types and inverted!!!
-
-	TODO:   Implement a type and possible value struct to make it possible
-		to check either or not a value is valid for the var type or not...
-		Else the C++ compiler always has to take over and carry me...
-
-	ALSO: 	This would help to implement default values... like in var $test...
-		Atm this only works with the basic type, but I want it to be 
-		compatible with anything! Can a class pointer equal NULL or should
-		I use nullptr? Or plain 0?
-*/
 
 struct var {
 	std::string name = "";
@@ -52,6 +40,8 @@ struct func {
 	bool returns = false;
 	std::vector<var> parameters;
 	bool closed = false;
+	bool method = false;
+	std::string class_name = "";
 	std::string file_name = "";
 	int line_num = 0;
 };
@@ -60,9 +50,15 @@ struct _class {
 	std::string name = "";
 	std::string inheritance = "";
 	std::vector<var> attributes;
-	std::vector<func> methods; //Would be easier if I just add a new attribute to func and save methods global!
 	func constructor;
 	func deconstructor;
+	bool closed = false;
+	std::string file_name = "";
+	int line_num = 0;
+};
+
+struct keywords_end {
+	std::string name = "";
 	bool closed = false;
 	std::string file_name = "";
 	int line_num = 0;
@@ -73,6 +69,10 @@ namespace syntax {
 	std::vector<func> functions;
 	std::vector<_struct> structs;
 	std::vector<_class> classes;
+	std::vector<keywords_end> keywords_end;
+	int keywords_end_index = 0;
+
+	bool show_warnings = true;
 }
 
 std::string get_file_by_line(std::string line) {
@@ -97,7 +97,6 @@ int get_linenum_by_line(std::string line) {
 
 bool syncheck_as(std::vector<std::string> segments, int start_pos, std::string name, int linenum) {
 	bool error = false;
-	/* TODO: verify the used type! */
 	if(segments.at(start_pos) == "as") {
 		if(segments.size() > start_pos + 1) {
 			if(segments.at(start_pos + 1) == "ptr") {
@@ -108,10 +107,41 @@ bool syncheck_as(std::vector<std::string> segments, int start_pos, std::string n
 				std::cout << "[SYNTAX-ERROR] as: Type identifier is missing! [\'" << name << "\'; line: " << linenum << "]" << std::endl;
 				std::cout << "\t\t[TIP] Syntax: identifier as type [ptr]" << std::endl;
 				error = true;
-			} else if(segments.at(start_pos + 2).substr(0, 3) == "ptr" && segments.at(start_pos + 2) != "ptr") {
+			} else if(segments.size() > start_pos + 2 && segments.at(start_pos + 2).substr(0, 3) == "ptr" && segments.at(start_pos + 2) != "ptr") {
 				std::cout << "[SYNTAX-ERROR] as: Unknown identifier! [\'" << name << "\'; line: " << linenum << "]" << std::endl;
 				std::cout << "\t\t[TIP] Did you mean 'ptr' instead of '" << segments.at(start_pos + 2) << "'? [\'" << name << "\'; line: " << linenum << "]" << std::endl;
 				error = true;
+			} else if(syntax::show_warnings) {
+				bool found = false;
+				for(auto t: default_values::types) {
+					if(segments.at(start_pos + 1) == "var" && t == "std::string") {
+						found = true;
+						break;
+					} else if(t == segments.at(start_pos + 1)) {
+						found = true;
+						break;
+					}
+				}
+				if(!found) {
+					for(auto t: syntax::classes) {
+						if(t.name == segments.at(start_pos + 1)) {
+							found = true;
+							break;
+						}
+					}
+				}
+				if(!found) {
+					for(auto t: syntax::structs) {
+						if(t.name == segments.at(start_pos + 1)) {
+							found = true;
+							break;
+						}
+
+					}
+				}
+				if(!found) {
+					std::cout << "[WARNING] as: Type might be used without being declared! [\'" << name << "\'; line: " << linenum << "]" << std::endl;
+				}
 			}
 		} else {
 			std::cout << "[SYNTAX-ERROR] as: Type identifier is missing! [\'" << name << "\'; line: " << linenum << "]" << std::endl;
@@ -123,11 +153,13 @@ bool syncheck_as(std::vector<std::string> segments, int start_pos, std::string n
 }
 
 /* TODO: Implement the call case... That's what the parameters are for */
-bool syncheck_var_declared(std::string var_name, std::string file_name, int linenum, int type_compare = 0, int param_pos = 0, bool msg = true) {
-	bool error = true;
+bool syncheck_var_declared(std::string var_name, std::string file_name, int linenum, int type_compare = 0, std::string func_name = "", int param_pos = 0, bool msg = true) {
+	bool error = true; //This var is one big lie but for now it's ok...
+	bool found = false;
 	func compare_func = syntax::functions.at(syntax::functions.size() - 1);
 	for(var t: compare_func.parameters) {
 		if(var_name == t.name) {
+			found = true;
 			if(type_compare == 1) {
 				if(compare_func.type == t.type) {
 					error = false;
@@ -145,6 +177,7 @@ bool syncheck_var_declared(std::string var_name, std::string file_name, int line
 		for(var t: syntax::variables) {
 			if(t.scope == compare_func.name) {
 				if(var_name == t.name) {
+					found = true;
 					if(type_compare == 1) {
 						if(compare_func.type == t.type) {
 							error = false;
@@ -160,10 +193,35 @@ bool syncheck_var_declared(std::string var_name, std::string file_name, int line
 			}
 		}
 	}
-	if(error && msg) {
-		std::cout << "[SYNTAX-ERROR] Variable used without being declared! [\'" << file_name << "\'; line: " << linenum << "]" << std::endl;
+	if(!found && msg && syntax::show_warnings) {
+		std::cout << "[WARNING] Variable might be used without being declared! [\'" << file_name << "\'; line: " << linenum << "]" << std::endl;
 		std::cout << "\t\t[TIP] Place this line somewhere above: var $" << var_name << std::endl;
+		error = false;
 	}
+	return error;
+}
+
+bool syncheck_function_call(std::vector<std::string> segments, int start_pos, std::string file_name, int linenum) {
+	bool error = false;
+	bool found = false;
+	if(segments.size() > start_pos && (segments.at(start_pos) == "(" || segments.at(start_pos) == ")")) {
+		std::cout << "[SYNTAX-ERROR] Identifier '" << segments.at(start_pos) << "' used without any sense! [\'" << file_name << "\'; line: " << linenum << "]" << std::endl;
+		error = true;
+	} else {
+		if(syntax::show_warnings) {
+			for(auto t: syntax::functions) {
+				if(!t.method) {
+					if(t.name == segments.at(start_pos)) {
+						found = true;
+					}
+				}
+			}
+			if(!found) {
+				std::cout << "[WARNING] Function might be used without being declared! [\'" << file_name << "\'; line: " << linenum << "]" << std::endl;
+			}
+		}
+	}
+
 	return error;
 }
 
@@ -175,17 +233,6 @@ bool syncheck_create_variable(std::vector<std::string> segments, std::string lin
 	int bracket_pos = 0;
 	bool error = false;
 
-	/*
-		TODO:
-		[x] 0. var <- forgot nearly everything!
-		[x] 1. var name <- forgot the $ sign!
-		[ ] 2. var $name = 12 <- can't be checked atm!
-		[-] 3. var $name as ppp ptrr <- It's ptr (and pp is undeclared)-> not handled in the syncheck_as!
-		[ ] 4. var $name as Name = () <- Unknown Constructor call!
-		[ ] 5. var $name = readline() <- Undefinied function!
-		[x] 6. var $name <- already declared!
-		[x]7. var $name = <- Missing value
-	*/
 	if(segments.size() == 1) {
 		std::cout << "[SYNTAX-ERROR] var: Missing var-name! [\'" << current_file << "\'; line: " << current_linenum << "]" << std::endl;
 		std::cout << "\t\t[TIP] Syntax: var $NAME [as type [ptr]] = [value]" << std::endl;
@@ -195,12 +242,8 @@ bool syncheck_create_variable(std::vector<std::string> segments, std::string lin
 			std::cout << "[SYNTAX-ERROR] var: You forgot the '$' sign! [\'" << current_file << "\'; line: " << current_linenum << "]" << std::endl;
 			std::cout << "\t\t[TIP] Change the line into: var $" << segments.at(1) << "..." << std::endl;
 			error = true;
-		} else if(segments.size() > 1 && segments.at(1).substr(0, 1) == "$") {
-			if(!syncheck_var_declared(segments.at(1).substr(1, segments.at(1).length()), current_file, current_linenum, 0, 0, false)) {
-				std::cout << "[SYNTAX-ERROR] var: Variable is already declared! [\'" << current_file << "\'; line: " << current_linenum << "]" << std::endl;
-				error = true;
-			}
-		} else if(segments.size() > 2) {
+		}
+		if(segments.size() > 2) {
 			if(syncheck_as(segments, 2, current_file, current_linenum)) error = true;
 			if(segments.size() > 2 && find_segment(segments, "=") == segments.size() - 1) {
 				std::cout << "[SYNTAX-ERROR] var: Missing value after allocation! [\'" << current_file << "\'; line: " << current_linenum << "]" << std::endl;
@@ -212,21 +255,30 @@ bool syncheck_create_variable(std::vector<std::string> segments, std::string lin
 				int end_bracket_pos = find_segment(segments, ")");
 				
 				if(alloc_pos == -1) {
-					/* TODO: Missing allocation */
-				} else if(start_bracket_pos == -1) {
-					/* TODO: Missing opening bracket */
-				} else if(end_bracket_pos == -1) {
-					/* TODO: Missing closing bracket */
-				} else {
-					if(alloc_pos + 1 == start_bracket_pos) {
-						//Constructor call
+					bool alloc_error = false;
+					if(segments.size() > 3 && segments.at(2) == "as") {
+						if(segments.size() > 4 && segments.at(4) == "ptr") {
+							if(segments.size() > 5) {
+								alloc_error = true;
+							}
+						} else {
+							if(segments.size() > 4) {
+								alloc_error = true;
+							}
+						}
 					} else {
-
+						if(segments.size() > 2) {
+							alloc_error = true;
+						}
 					}
-				}
+					if(alloc_error) {
+						std::cout << "[SYNTAX-ERROR] var: Missing allocator between variable and value! [\'" << current_file << "\'; line: " << current_linenum << "]" << std::endl;
+						std::cout << "\t\t[TIP] Add the '=' sign between the variable and the value!" << std::endl;
+						error = true;
+					}
+				} 			
 			}
 		}
-		
 	}
 	if(!error) {
 		if(syntax::functions.size() > 0) {
@@ -281,7 +333,7 @@ bool syncheck_create_function(std::vector<std::string> segments, std::string lin
 		if(bracket_pos == -1) {
 			std::cout << "[SYNTAX-ERROR] func: Missing bracket after identifier! [\'" << current_file << "\'; line: " << current_linenum << "]" << std::endl;
 			std::cout << "\t\t[TIP] Function definitions without '()' are forbidden!" << std::endl;
-			error = true;
+			error = true;	
 		} else {
 			if(find_next_segment(segments, ")", bracket_pos) == -1) {
 				std::cout << "[SYNTAX-ERROR] func: Missing closing bracket! [\'" << current_file << "\'; line: " << current_linenum << "]" << std::endl;
@@ -388,24 +440,13 @@ bool check_source(std::vector<std::string> parsed_file) {
 
 	for(std::string line: parsed_file) {
 		segments = split_line(line);
-
 		if(segments.size() > 0) {
 			if(segments.at(0) == "func") {
 				if(syncheck_create_function(segments, line)) error = true;
 			} else if(segments.at(0) == "var") {
 				if(syncheck_create_variable(segments, line)) error = true;
 			} else if(segments.at(0).substr(0, 1) == "$") {
-				/*
-				std::string name = "";
-				std::string value = "";
-				if(segments.size() > 2) {
-					name = segments.at(0).substr(1, segments.at(0).length());
-					if(segments.at(1) == "=") {
-						value = get_used_value(segments, 2, segments.size() - 1);
-						converted_file.push_back(name + " = " + value + ";");
-					}
-				}
-				*/
+					
 			} else if(segments.at(0) == "ret") {
 				if(syncheck_ret(segments, line)) error = true;
 				if(!syntax::functions.at(syntax::functions.size() - 1).need_return) {
@@ -415,25 +456,27 @@ bool check_source(std::vector<std::string> parsed_file) {
 				} else {
 					syntax::functions.at(syntax::functions.size() - 1).returns = true;
 				}
+			} else if(segments.at(0) == "while") {
+				syntax::keywords_end.push_back({"while", false, get_file_by_line(line), get_linenum_by_line(line)});
+				syntax::keywords_end_index++;
+			} else if(segments.at(0) == "if") {
+				syntax::keywords_end.push_back({"if", false, get_file_by_line(line), get_linenum_by_line(line)});
+				syntax::keywords_end_index++;
 			} else if(segments.at(0) == "end") {
 				//TODO: Add new stuff ABOVE this line!
-				if(!syntax::functions.at(syntax::functions.size() - 1).closed) {
+				if(syntax::keywords_end_index > 0 && syntax::keywords_end.size() > 0 && syntax::keywords_end.size() >= syntax::keywords_end_index &&
+					       !syntax::keywords_end.at(syntax::keywords_end.size() - syntax::keywords_end_index).closed) {	
+					syntax::keywords_end.at(syntax::keywords_end.size() - syntax::keywords_end_index).closed = true;
+					syntax::keywords_end_index--;
+				} else if(syntax::functions.size() > 0 && !syntax::functions.at(syntax::functions.size() - 1).closed) {
 					syntax::functions.at(syntax::functions.size() - 1).closed = true;
 				} else {
 					std::cout << "[SYNTAX-ERROR] end: Used without anything to close! [\'" << get_file_by_line(line) << "\'; line: " << get_linenum_by_line(line) << "]" << std::endl;
 					std::cout << "\t\t[TIP] Use tabs to make things more clearer!" << std::endl;
 					error = true;
 				}
-			} else {
-				/*
-				std::string out = "";
-				if(segments.size() > 2) {
-					out = get_used_value(segments, 1, segments.size() - 1);
-					converted_file.push_back(segments.at(0) + out + ";");
-				} else {
-					converted_file.push_back(segments.at(0) + "();");
-				}
-				*/
+			} else if(segments.at(0) != "cpp") {
+				if(syncheck_function_call(segments, 0, get_file_by_line(line), get_linenum_by_line(line))) error = true;
 			}
 		}
 	}
