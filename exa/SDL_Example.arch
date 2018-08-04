@@ -1,0 +1,51 @@
+import ./basics.arch
+
+__cpp
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+cpp__
+
+func draw_texture($ren as SDL_Renderer ptr, $tex as SDL_Texture ptr, $x as int, $y as int, $w as int, $h as int)
+	var $rect as SDL_Rect
+	$rect.$x = $x
+	$rect.$y = $y
+	$rect.$w = $w
+	$rect.$h = $h
+	SDL_RenderCopy($ren, $tex, NULL, $rect ref)
+end
+
+func main()
+	var $window as SDL_Window ptr
+	var $renderer as SDL_Renderer ptr
+	var $image as SDL_Texture ptr
+	var $event as SDL_Event
+	var $exit as bool
+
+	SDL_Init($SDL_INIT_EVERYTHING)
+	IMG_Init($IMG_INIT_PNG)
+
+	$window = SDL_CreateWindow("Architech & SDL", $SDL_WINDOWPOS_CENTERED, $SDL_WINDOWPOS_CENTERED, 1000, 400, $SDL_WINDOW_SHOWN)
+	$renderer = SDL_CreateRenderer($window, -1, $SDL_RENDERER_ACCELERATED)
+	$image = SDL_CreateTextureFromSurface($renderer, IMG_Load("Architech_v2_white.png"))
+
+	while(!$exit)
+		while(SDL_PollEvent($event ref))
+			if($event.$type == $SDL_QUIT)
+				$exit = true
+			end
+		end
+		SDL_RenderClear($renderer)
+		draw_texture($renderer, $image, 0, 0, 1000, 400)
+		SDL_RenderPresent($renderer)
+		SDL_Delay(15) # Prevent CPU from spinning wild
+	end
+
+	SDL_DestroyTexture($image)
+	SDL_DestroyRenderer($renderer)
+	SDL_DestroyWindow($window)
+	IMG_Quit()
+	SDL_Quit()
+	println("Test completed!")
+
+	ret
+end
